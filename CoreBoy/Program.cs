@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using SDL2;
 
 namespace CoreBoy
@@ -7,20 +8,19 @@ namespace CoreBoy
     {
         static void Main(string[] args)
         {
-            SDL.SDL_Init(SDL.SDL_INIT_VIDEO);
+            Console.WriteLine("Starting...");
 
-            var window = IntPtr.Zero;                        
-            window = SDL.SDL_CreateWindow(".NET Core SDL2-CS Tutorial",
-                SDL.SDL_WINDOWPOS_CENTERED,
-                SDL.SDL_WINDOWPOS_CENTERED,
-                1028,
-                800,
-                SDL.SDL_WindowFlags.SDL_WINDOW_RESIZABLE
-            );
+            var rom = File.ReadAllBytes(@"D:\Tetris (World) (Rev A).gb");
 
-            SDL.SDL_Delay(5000);
-            SDL.SDL_DestroyWindow(window);            
-            SDL.SDL_Quit();
+            var cpu = new CPU(rom);
+
+            cpu.Start();
+
+            //using (var screen = new Screen(cpu.ScreenTick))
+            //{
+            //    screen.Start();
+            //    System.Threading.Thread.Sleep(5000);
+            //}
         }
     }
 }
