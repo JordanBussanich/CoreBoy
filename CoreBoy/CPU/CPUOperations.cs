@@ -39,6 +39,9 @@ namespace CoreBoy
             // 0x02 - LD (DE), A
             Operations.Add(0x12, ops.LD_8(Register8BitNames.A, Register16BitNames.DE));
 
+            // 0x0B - DEC BC
+            Operations.Add(0x0B, ops.DEC_16(Register16BitNames.BC));
+
             // 0x0C - INC C
             Operations.Add(0x0C, ops.INC_8(Register8BitNames.C));
 
@@ -62,6 +65,9 @@ namespace CoreBoy
 
             // 0x19 - ADD HL,DE
             Operations.Add(0x19, ops.ADD_16(Register16BitNames.DE));
+
+            // 0x1B - DEC DE
+            Operations.Add(0x1B, ops.DEC_16(Register16BitNames.DE));
 
             // 0x1C - INC E
             Operations.Add(0x1C, ops.INC_8(Register8BitNames.E));
@@ -96,6 +102,12 @@ namespace CoreBoy
             // 0x29 - ADD HL,HL
             Operations.Add(0x29, ops.ADD_16(Register16BitNames.HL));
 
+            // 0x2A - LDI (HL),A
+            Operations.Add(0x2A, ops.LDI(Register8BitNames.A, Register16BitNames.HL));
+
+            // 0x2B - DEC HL
+            Operations.Add(0x2B, ops.DEC_16(Register16BitNames.HL));
+
             // 0x2C - INC L
             Operations.Add(0x2C, ops.INC_8(Register8BitNames.L));
 
@@ -117,14 +129,41 @@ namespace CoreBoy
             // 0x35 - DEC A
             Operations.Add(0x35, ops.DEC_8(Register8BitNames.A));
 
+            // 0x36 - LD HL,n
+            Operations.Add(0x36, ops.LD_8(Register16BitNames.HL));
+
             // 0x38 - JR C,n
             Operations.Add(0x38, ops.JR(JRFlags.C));
 
             // 0x39 - ADD HL,SP
             Operations.Add(0x39, ops.ADD_16(Register16BitNames.SP));
 
+            // 0x3B - DEC SP
+            Operations.Add(0x3B, ops.DEC_16(Register16BitNames.SP));
+
             // 0x3C - INC A
             Operations.Add(0x3C, ops.INC_8(Register8BitNames.A));
+
+            // 0x3E - LD A,n
+            Operations.Add(0x3E, ops.LD_8(Register8BitNames.A));
+
+            // 0x70 - LD (HL), B
+            Operations.Add(0x70, ops.LD_8(Register8BitNames.B, Register16BitNames.HL));
+
+            // 0x71 - LD (HL), C
+            Operations.Add(0x71, ops.LD_8(Register8BitNames.C, Register16BitNames.HL));
+
+            // 0x72 - LD (HL), D
+            Operations.Add(0x72, ops.LD_8(Register8BitNames.D, Register16BitNames.HL));
+
+            // 0x73 - LD (HL), E
+            Operations.Add(0x73, ops.LD_8(Register8BitNames.E, Register16BitNames.HL));
+
+            // 0x74 - LD (HL), H
+            Operations.Add(0x74, ops.LD_8(Register8BitNames.H, Register16BitNames.HL));
+
+            // 0x75 - LD (HL), L
+            Operations.Add(0x75, ops.LD_8(Register8BitNames.L, Register16BitNames.HL));
 
             // 0x77 - LD (HL), A
             Operations.Add(0x77, ops.LD_8(Register8BitNames.A, Register16BitNames.HL));
@@ -219,14 +258,38 @@ namespace CoreBoy
             // 0xC3 - JP, nn
             Operations.Add(0xC3, ops.JP_nn());
 
+            // 0xC9 - RET
+            Operations.Add(0xC9, ops.RET());
+
             // 0xCA - JP Z,nn
             Operations.Add(0xCA, ops.JP_cc_nn(JRFlags.Z));
+
+            // 0xCD - CALL nn
+            Operations.Add(0xCD, ops.CALL());
 
             // 0xD2 - JP NC,nn
             Operations.Add(0xD2, ops.JP_cc_nn(JRFlags.NC));
 
             // 0xDA - JP C,nn
             Operations.Add(0xDA, ops.JP_cc_nn(JRFlags.C));
+
+            // 0xE0 - LDH (n),A
+            Operations.Add(0xE0, ops.LDH_n_A());
+
+            // 0xE2 - LD (0xFF00+C),A
+            Operations.Add(0xE2, ops.LD_C_FF00_A());
+
+            // 0xEA - LD (nn),A
+            Operations.Add(0xEA, ops.LD_8());
+
+            // 0xF0 - LDH A,(n)
+            Operations.Add(0xF0, ops.LDH_A_n());
+
+            // 0xF3 - DI
+            Operations.Add(0xF3, ops.DI());
+
+            // 0xFE - CP
+            Operations.Add(0xFE, ops.CP());
         }
 
         public enum JRFlags
@@ -246,12 +309,12 @@ namespace CoreBoy
                 _cpu = cpu;
             }
 
-            public Operation NOP() => new Operation(() =>
+            public NormalOperation NOP() => new NormalOperation(() =>
             {
                 Console.WriteLine("NOP");
             }, "NOP", 4, 1);
 
-            public Operation LD_16(Register16BitNames register) => new Operation(() =>
+            public NormalOperation LD_16(Register16BitNames register) => new NormalOperation(() =>
             {
                 ushort currentPC = _cpu.Registers.GetRegisterValue(Register16BitNames.PC);
 
@@ -260,13 +323,13 @@ namespace CoreBoy
 
                 ushort newValue = (ushort)((msByte << 8) | lsByte);
 
-                Console.WriteLine($"LD {register.ToString()}, LS Byte: 0x{lsByte.ToString("X2")}, MS Byte: 0x{msByte.ToString("X2")}, Value: 0x{newValue.ToString("X4")}");
+                Console.WriteLine($"LD {register.ToString()}, 0x{newValue.ToString("X4")}");
 
                 _cpu.Registers.SetRegisterValue(register, newValue);
 
             }, $"LD {register.ToString()}, nn", 12, 3);
 
-            public Operation LD_16_SP() => new Operation(() =>
+            public NormalOperation LD_16_SP() => new NormalOperation(() =>
             {
                 ushort currentPC = _cpu.Registers.GetRegisterValue(Register16BitNames.PC);
                 ushort currentSP = _cpu.Registers.GetRegisterValue(Register16BitNames.SP);
@@ -285,7 +348,7 @@ namespace CoreBoy
                 _cpu.Memory[address + 0x1] = spMSB;
             }, $"LD (nn), SP", 20, 3);
 
-            public Operation LDD(Register8BitNames sourceRegister, Register16BitNames destinationRegister) => new Operation(() =>
+            public NormalOperation LDD(Register8BitNames sourceRegister, Register16BitNames destinationRegister) => new NormalOperation(() =>
             {               
                 Console.WriteLine($"LDD {sourceRegister.ToString()}, {destinationRegister.ToString()}");
                 
@@ -299,7 +362,33 @@ namespace CoreBoy
 
             }, $"LDD {sourceRegister.ToString()}, {destinationRegister.ToString()}", 8, 1);
 
-            public Operation LD_8(Register8BitNames register) => new Operation(() =>
+            public NormalOperation LDI(Register8BitNames sourceRegister, Register16BitNames destinationRegister) => new NormalOperation(() =>
+            {               
+                Console.WriteLine($"LDI {sourceRegister.ToString()}, {destinationRegister.ToString()}");
+                
+                ushort destinationAddress = _cpu.Registers.GetRegisterValue(destinationRegister);
+
+                byte sourceValue = (byte)(_cpu.Registers.GetRegisterValue(sourceRegister));
+
+                _cpu.Memory[destinationAddress] = sourceValue;
+
+                _cpu.Registers.SetRegisterValue(destinationRegister, ++destinationAddress);
+
+            }, $"LDI {sourceRegister.ToString()}, {destinationRegister.ToString()}", 8, 1);
+
+            public NormalOperation LD_C_FF00_A() => new NormalOperation(() =>
+            {
+                byte currentA = _cpu.Registers.GetRegisterValue(Register8BitNames.A);
+                byte currentC = _cpu.Registers.GetRegisterValue(Register8BitNames.C);
+
+                ushort newAddress = (ushort)(currentC + 0xFF00);
+
+                _cpu.Memory[newAddress] = currentA;
+
+                Console.WriteLine($"LD 0x{newAddress.ToString("X4")}, A");
+            }, $"LD ($FF00+C),A", 8, 1);
+            
+            public NormalOperation LD_8(Register8BitNames register) => new NormalOperation(() =>
             {
                 ushort currentPC = _cpu.Registers.GetRegisterValue(Register16BitNames.PC);
 
@@ -310,7 +399,18 @@ namespace CoreBoy
                 _cpu.Registers.SetRegisterValue(register, value);
             }, $"LD {register.ToString()}, nn", 8, 2);
 
-            public Operation LD_8(Register8BitNames source, Register8BitNames target) => new Operation(() =>
+            public NormalOperation LD_8(Register16BitNames register) => new NormalOperation(() =>
+            {
+                ushort currentPC = _cpu.Registers.GetRegisterValue(Register16BitNames.PC);
+
+                byte value = _cpu.Memory[currentPC + 0x1];
+
+                Console.WriteLine($"LD {register.ToString()}, 0x{value.ToString("X2")}");
+
+                _cpu.Registers.SetRegisterValue(register, value);
+            }, $"LD {register.ToString()}, nn", 12, 2);
+
+            public NormalOperation LD_8(Register8BitNames source, Register8BitNames target) => new NormalOperation(() =>
             {
                 Console.WriteLine($"LD {target.ToString()}, {source.ToString()}");
 
@@ -318,7 +418,7 @@ namespace CoreBoy
                 _cpu.Registers.SetRegisterValue(target, sourceValue);
             }, $"LD {target.ToString()}, {source.ToString()}", 4, 1);
 
-            public Operation LD_8(Register8BitNames source, Register16BitNames target) => new Operation(() =>
+            public NormalOperation LD_8(Register8BitNames source, Register16BitNames target) => new NormalOperation(() =>
             {
                 Console.WriteLine($"LD {target.ToString()}, {source.ToString()}");
 
@@ -326,12 +426,26 @@ namespace CoreBoy
                 _cpu.Registers.SetRegisterValue(target, sourceValue);
             }, $"LD {target.ToString()}, {source.ToString()}", 8, 1);
 
-            public Operation DEC_8(Register8BitNames register) => new Operation(() =>
+            public NormalOperation LD_8() => new NormalOperation(() =>
+            {
+                ushort currentPC = _cpu.Registers.GetRegisterValue(Register16BitNames.PC);
+
+                ushort lsByte = _cpu.Memory[currentPC + 0x1];
+                ushort msByte = _cpu.Memory[currentPC + 0x2];
+
+                ushort newValue = (ushort)((msByte << 8) | lsByte);
+
+                _cpu.Memory[newValue] = _cpu.Registers.GetRegisterValue(Register8BitNames.A);
+
+                Console.WriteLine($"LD 0x{newValue.ToString("X4")}, A");
+            }, $"LD (nn),A", 16, 3);
+
+            public NormalOperation DEC_8(Register8BitNames register) => new NormalOperation(() =>
             {
                 Console.WriteLine($"DEC {register.ToString()}");
 
                 byte operand = _cpu.Registers.GetRegisterValue(register);
-                byte result = (byte)(operand - 1);
+                byte result = --operand;
 
                 _cpu.Registers.SetRegisterValue(register, result);
 
@@ -341,7 +455,18 @@ namespace CoreBoy
 
             }, $"DEC {register.ToString()}", 4, 1);
 
-            public Operation INC_8(Register8BitNames register) => new Operation(() =>
+            public NormalOperation DEC_16(Register16BitNames register) => new NormalOperation(() =>
+            {
+                Console.WriteLine($"DEC {register.ToString()}");
+
+                ushort operand = _cpu.Registers.GetRegisterValue(register);
+                ushort result = --operand;
+
+                _cpu.Registers.SetRegisterValue(register, result);
+
+            }, $"DEC {register.ToString()}", 8, 1);
+
+            public NormalOperation INC_8(Register8BitNames register) => new NormalOperation(() =>
             {
                 Console.WriteLine($"INC {register.ToString()}");
 
@@ -356,7 +481,7 @@ namespace CoreBoy
 
             }, $"INC {register.ToString()}", 4, 1);
 
-            public Operation OR_8(Register8BitNames register) => new Operation(() =>
+            public NormalOperation OR_8(Register8BitNames register) => new NormalOperation(() =>
             {
                 Console.WriteLine($"OR {register.ToString()}");
 
@@ -372,7 +497,7 @@ namespace CoreBoy
 
             }, $"OR {register.ToString()}", 4, 1);
 
-            public Operation JR(JRFlags flag) => new Operation(() =>
+            public JumpOperation JR(JRFlags flag) => new JumpOperation(() =>
             {
                 ushort currentPC = _cpu.Registers.GetRegisterValue(Register16BitNames.PC);
                 ushort newAddress = 0;
@@ -419,9 +544,10 @@ namespace CoreBoy
 
                 _cpu.Registers.SetRegisterValue(Register16BitNames.PC, newAddress);
 
-            }, $"JR {flag.ToString()}, n", 8, null);
+                return jump;
+            }, $"JR {flag.ToString()}, n", 12, null, 8);
 
-            public Operation JP_cc_nn(JRFlags flag) => new Operation(() =>
+            public JumpOperation JP_cc_nn(JRFlags flag) => new JumpOperation(() =>
             {
                 ushort currentPC = _cpu.Registers.GetRegisterValue(Register16BitNames.PC);
                 ushort newAddress = 0;
@@ -471,9 +597,10 @@ namespace CoreBoy
 
                 _cpu.Registers.SetRegisterValue(Register16BitNames.PC, newAddress);
 
-            }, $"JP {flag.ToString()}, nn", 12, null);
+                return jump;
+            }, $"JP {flag.ToString()}, nn", 16, null, 12);
 
-            public Operation RRA() => new Operation(() =>
+            public NormalOperation RRA() => new NormalOperation(() =>
             {
                 Console.WriteLine("RRA");
 
@@ -492,7 +619,7 @@ namespace CoreBoy
                 _cpu.Registers.SetRegisterValue(Register8BitNames.A, newA);
             }, "RRA", 4, 1);
 
-            public Operation XOR_8(Register8BitNames parameter) => new Operation(() =>
+            public NormalOperation XOR_8(Register8BitNames parameter) => new NormalOperation(() =>
             {
                 Console.WriteLine($"XOR {parameter.ToString()}");
 
@@ -510,7 +637,7 @@ namespace CoreBoy
                 
             }, $"XOR {parameter.ToString()}", 4, 1);           
 
-            public Operation JP_nn() => new Operation(() =>
+            public JumpOperation JP_nn() => new JumpOperation(() =>
             {
                 ushort nextPC = (ushort)(_cpu.Registers.GetRegisterValue(Register16BitNames.PC) + 0x1);
                 
@@ -522,13 +649,32 @@ namespace CoreBoy
                 Console.WriteLine($"JP 0x{address.ToString("X4")}");
 
                 _cpu.Registers.SetRegisterValue(Register16BitNames.PC, address);
-            }, $"JP nn", 12, null);
 
-            public Operation CP(Register8BitNames register) => new Operation(() =>
+                return true;
+            }, $"JP nn", 16, null, 16);
+
+            public NormalOperation CP(Register8BitNames register) => new NormalOperation(() =>
             {
                 Console.WriteLine($"CP {register.ToString()}");
 
                 byte parameter = _cpu.Registers.GetRegisterValue(register);
+                
+                CP(parameter);
+            }, $"CP {register.ToString()}", 4, 1);
+
+            public NormalOperation CP() => new NormalOperation(() =>
+            {
+                ushort currentPC = _cpu.Registers.GetRegisterValue(Register16BitNames.PC);
+                
+                byte parameter = _cpu.Memory[currentPC + 0x1];
+
+                Console.WriteLine($"CP 0x{parameter.ToString("X2")}");
+
+                CP(parameter);               
+            }, $"CP n", 8, 2);
+
+            private void CP(byte parameter)
+            {
                 byte currentA = _cpu.Registers.GetRegisterValue(Register8BitNames.A);
 
                 bool currentABit3 = (byte)(((byte)(currentA >> 3)) & 0b_0000_0001) == 0b_1;
@@ -538,9 +684,9 @@ namespace CoreBoy
                 _cpu.Registers.NSubtractFlag = true;
                 _cpu.Registers.HHalfCarryFlag = !currentABit3 && parameterBit3;
                 _cpu.Registers.CCarryFlag = currentA < parameter;
-            }, $"CP {register.ToString()}", 4, 1);
+            }
 
-            public Operation ADD_16(Register16BitNames register) => new Operation(() =>
+            public NormalOperation ADD_16(Register16BitNames register) => new NormalOperation(() =>
             {
                 Console.WriteLine($"ADD HL, {register.ToString()}");
 
@@ -556,7 +702,7 @@ namespace CoreBoy
                 _cpu.Registers.SetRegisterValue(Register16BitNames.HL, result);
             }, $"ADD HL, {register.ToString()}", 8, 1);
 
-            public Operation RLCA() => new Operation(() =>
+            public NormalOperation RLCA() => new NormalOperation(() =>
             {
                 Console.WriteLine("RLCA");
 
@@ -571,6 +717,101 @@ namespace CoreBoy
                 _cpu.Registers.HHalfCarryFlag = false;
                 _cpu.Registers.CCarryFlag = newLsb == 0x1;
             }, $"RLCA", 4, 1);
+
+            public NormalOperation DI() => new NormalOperation(() =>
+            {
+                Console.WriteLine("DI");
+
+                CPU.DIHelper.DisableInterruptsAfterNextInstruction = true;
+            }, $"DI", 4, 1);
+
+            public NormalOperation LDH_n_A() => new NormalOperation(() =>
+            {
+                ushort currentPC = _cpu.Registers.GetRegisterValue(Register16BitNames.PC);
+                byte offset = _cpu.Memory[currentPC + 0x1];
+
+                Console.WriteLine($"LDH 0x{offset.ToString("X2")}, A");
+
+                ushort newAddress = (ushort)(0xFF00 + offset);
+
+                _cpu.Memory[newAddress] = _cpu.Registers.GetRegisterValue(Register8BitNames.A);
+            }, $"LDH (n),A", 12, 2);
+
+            public NormalOperation LDH_A_n() => new NormalOperation(() =>
+            {
+                ushort currentPC = _cpu.Registers.GetRegisterValue(Register16BitNames.PC);
+                byte offset = _cpu.Memory[currentPC + 0x1];
+
+                Console.WriteLine($"LDH A, 0x{offset.ToString("X2")}");
+
+                ushort newAddress = (ushort)(0xFF00 + offset);
+
+                _cpu.Registers.SetRegisterValue(Register8BitNames.A, _cpu.Memory[newAddress]);
+            }, $"LDH A,(n)", 12, 2);
+
+            public NormalOperation CALL() => new NormalOperation(() =>
+            {
+                ushort currentPC = _cpu.Registers.GetRegisterValue(Register16BitNames.PC);
+                byte jumpLsb = _cpu.Memory[currentPC + 0x1];
+                byte jumpMsb = _cpu.Memory[currentPC + 0x2];
+
+                Console.WriteLine($"CALL 0x{jumpMsb.ToString("X2")}{jumpLsb.ToString("X2")}");
+
+                CALL(jumpMsb, jumpLsb);
+            }, $"CALL nn", 12, null);
+
+            public NormalOperation RET() => new NormalOperation(() =>
+            {
+                Console.WriteLine("RET");
+
+                byte newMsb = POP();
+                byte newLsb = POP();
+
+                ushort newAddress = (ushort)(((ushort)newMsb << 8) | newLsb);
+
+                _cpu.Registers.SetRegisterValue(Register16BitNames.PC, newAddress);
+            }, $"RET", 8, null);
+
+            private void CALL(byte jumpMsb, byte jumpLsb)
+            {
+                ushort currentPC = _cpu.Registers.GetRegisterValue(Register16BitNames.PC);
+                ushort returnAddress = (ushort)(currentPC + 0x3);
+
+                PUSHAddress(returnAddress);
+
+                ushort newAddress = (ushort)(((ushort)jumpMsb << 8) | jumpLsb);
+
+                _cpu.Registers.SetRegisterValue(Register16BitNames.PC, newAddress);
+            }
+
+            private void PUSH(byte value)
+            {
+                ushort currentSP = _cpu.Registers.GetRegisterValue(Register16BitNames.SP);
+                _cpu.Registers.SetRegisterValue(Register16BitNames.SP, --currentSP);
+
+                _cpu.Memory[currentSP] = value;
+            }
+
+            private void PUSHAddress(ushort address)
+            {
+                byte addressMSB = (byte)((address & 0b_1111_1111_0000_0000) >> 8);
+                byte addressLSB = (byte)(address & 0b_0000_0000_1111_1111);
+
+                PUSH(addressLSB);
+                PUSH(addressMSB);
+            }
+
+            private byte POP()
+            {
+                byte result;
+
+                ushort currentSP = _cpu.Registers.GetRegisterValue(Register16BitNames.SP);
+                result = _cpu.Memory[currentSP];
+
+                _cpu.Registers.SetRegisterValue(Register16BitNames.SP, ++currentSP);
+
+                return result;
+            }
         }
     }
 }

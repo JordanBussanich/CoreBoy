@@ -10,7 +10,10 @@ namespace CoreBoy
         public byte[] SwitchableRAMBank { get; private set; } = new byte[0x2000]; // 0xA000 - 0xBFFF
         public byte[] InternalRAM { get; private set; } = new byte[0x2000];       // 0xC000 - 0xDFFF
         public byte[] SpriteAttributes { get; private set; } = new byte[0x00A0];  // 0xFE00 - 0xFE9F
+        public byte[] SpecialRegisters { get; private set; } = new byte[0x004C];   // 0xFF00 - 0xFF4B
         public byte[] InternalRAM2 { get; private set; } = new byte[0x007F];      // 0xFF80 - 0xFFFE
+
+        public byte InterruptEnable { get; set; } = 0x00;
 
         public byte this[ushort i]
         {
@@ -82,7 +85,7 @@ namespace CoreBoy
             }
             else if (address >= 0xFF00 && address < 0xFF4C)
             {
-                throw new NotImplementedException("I/O Ports");
+                return SpecialRegisters[address - 0xFF00];
             }
             else if (address >= 0xFF4C && address < 0xFF80)
             {
@@ -94,7 +97,7 @@ namespace CoreBoy
             }
             else if (address == 0xFFFF)
             {
-                throw new NotImplementedException("Interrupt Enable Register");
+                return InterruptEnable;
             }
             else
             {
@@ -134,15 +137,17 @@ namespace CoreBoy
             }
             else if (address >= 0xFEA0 && address < 0xFF00)
             {
-                throw new NotImplementedException("Empty - Not usable for I/O");
+                // Ignore it, just continue
+                Console.WriteLine($"WARNING - Attempted to write to 0x{address.ToString("X4")}");
             }
             else if (address >= 0xFF00 && address < 0xFF4C)
             {
-                throw new NotImplementedException("I/O Ports");
+                SpecialRegisters[address - 0xFF00] = value;
             }
             else if (address >= 0xFF4C && address < 0xFF80)
             {
-                throw new NotImplementedException("Empty - Not usable for I/O");
+                // Ignore it, just continue
+                Console.WriteLine($"WARNING - Attempted to write to 0x{address.ToString("X4")}");
             }
             else if (address >= 0xFF80 && address < 0xFFFF)
             {
@@ -150,7 +155,7 @@ namespace CoreBoy
             }
             else if (address == 0xFFFF)
             {
-                throw new NotImplementedException("Interrupt Enable Register");
+                InterruptEnable = value;
             }
             else
             {

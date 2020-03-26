@@ -13,7 +13,7 @@ namespace CoreBoy
             E,
             F,
             H,
-            L
+            L,
         }
 
         public enum Register16BitNames

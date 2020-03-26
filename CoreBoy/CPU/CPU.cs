@@ -5,37 +5,17 @@ namespace CoreBoy
 {
     public partial class CPU
     {
-        /* private class Operation
-        {
-            public Action Op { get; }
-            public string Name { get; }
-            public int Cycles { get; }
-
-            public Operation(Action op, string name, int cycles)
-            {
-                if (op == null)
-                {
-                    throw new ArgumentNullException("op cannot be null.");
-                }
-                
-                if (String.IsNullOrWhiteSpace(name))
-                {
-                    throw new ArgumentNullException("name must not be null or empty.");
-                }
-
-                if (cycles < 1)
-                {
-                    throw new ArgumentOutOfRangeException("cycles must be at least 1.");
-                }
-
-                Op = op;
-                Cycles = cycles;
-            }
-        } */
-
         public CPURegisters Registers { get; } = new CPURegisters();
         public Memory Memory { get; } = new Memory();
         public byte[] ROM { get; }
+        public int CycleCount { get; private set; } = 0;
+        public GPU Gpu { get; }
+        
+        private static class DIHelper
+        {
+            public static bool DisableInterruptsAfterNextInstruction { get; set; } = false;
+            public static bool NextInstruction { get; set; } = false;
+        }
 
         private Dictionary<byte, Operation> Operations = new Dictionary<byte, Operation>();
 
@@ -59,6 +39,9 @@ namespace CoreBoy
 
             Console.WriteLine("Initialising Operations...");
             InitialiseOperations();
+
+            Console.WriteLine("Initialising GPU...");
+            Gpu = new GPU(this);
             
             Console.WriteLine("CPU Initialised!");
         }
@@ -67,8 +50,16 @@ namespace CoreBoy
         {
             while(true)
             {
+                if (DIHelper.DisableInterruptsAfterNextInstruction)
+                {
+                    DIHelper.NextInstruction = true;
+                    DIHelper.DisableInterruptsAfterNextInstruction = false;
+                }
+
                 ushort currentPC = Registers.GetRegisterValue(Register16BitNames.PC);
                 byte opCode = Memory[currentPC];
+
+                int cyclesToAdd = 0;
 
                 try
                 {
@@ -76,7 +67,23 @@ namespace CoreBoy
 
                     Console.Write($"{currentPC.ToString("X4")} - 0x{opCode.ToString("X2")} - ");
 
-                    operation.Op.Invoke();
+                    switch (operation)
+                    {
+                        case NormalOperation normalOperation:
+                            normalOperation.DoIt();
+                            cyclesToAdd = normalOperation.Cycles;
+                            break;
+                        case JumpOperation jumpOperation:
+                            if (jumpOperation.DoIt())
+                            {
+                                cyclesToAdd = jumpOperation.Cycles;
+                            }
+                            else
+                            {
+                                cyclesToAdd = jumpOperation.CyclesIfNoJump;
+                            }
+                            break;
+                    }
 
                     if (operation.IncrementPC != null)
                     {
@@ -88,10 +95,25 @@ namespace CoreBoy
                 {
                     Console.WriteLine($"No implementation for opcode: 0x{opCode.ToString("X2")}");
                     Console.WriteLine($"PC: 0x{Registers.GetRegisterValue(Register16BitNames.PC).ToString("X4")}");
+                    Console.WriteLine($"SP: 0x{Registers.GetRegisterValue(Register16BitNames.SP).ToString("X4")}");
+                    Console.WriteLine($"AF: 0x{Registers.GetRegisterValue(Register16BitNames.AF).ToString("X4")}");
+                    Console.WriteLine($"BC: 0x{Registers.GetRegisterValue(Register16BitNames.BC).ToString("X4")}");
+                    Console.WriteLine($"DE: 0x{Registers.GetRegisterValue(Register16BitNames.DE).ToString("X4")}");
+                    Console.WriteLine($"HL: 0x{Registers.GetRegisterValue(Register16BitNames.HL).ToString("X4")}");
                     Environment.Exit(1);
                 }
 
-                //System.Threading.Thread.Sleep(50);
+                CycleCount += cyclesToAdd;
+
+                Gpu.Step(cyclesToAdd);
+
+                if (DIHelper.NextInstruction)
+                {
+                    Memory.InterruptEnable = 0x0;
+                    DIHelper.NextInstruction = false;
+                }
+
+                //System.Threading.Thread.Sleep(10);
             }
         }
 
