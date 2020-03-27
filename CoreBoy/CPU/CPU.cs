@@ -17,6 +17,12 @@ namespace CoreBoy
             public static bool NextInstruction { get; set; } = false;
         }
 
+        private static class EIHelper
+        {
+            public static bool EnableInterruptsAfterNextInstruction { get; set; } = false;
+            public static bool NextInstruction { get; set; } = false;
+        }
+
         private Dictionary<byte, Operation> Operations = new Dictionary<byte, Operation>();
 
         public CPU(byte[] rom)
@@ -54,6 +60,12 @@ namespace CoreBoy
                 {
                     DIHelper.NextInstruction = true;
                     DIHelper.DisableInterruptsAfterNextInstruction = false;
+                }
+
+                if (EIHelper.EnableInterruptsAfterNextInstruction)
+                {
+                    EIHelper.NextInstruction = true;
+                    EIHelper.EnableInterruptsAfterNextInstruction = false;
                 }
 
                 ushort currentPC = Registers.GetRegisterValue(Register16BitNames.PC);
@@ -113,13 +125,14 @@ namespace CoreBoy
                     DIHelper.NextInstruction = false;
                 }
 
+                if (EIHelper.NextInstruction)
+                {
+                    Memory.InterruptEnable = 0x1;
+                    EIHelper.NextInstruction = false;
+                }
+
                 //System.Threading.Thread.Sleep(10);
             }
-        }
-
-        public void ScreenTick()
-        {
-
         }
     }
 }

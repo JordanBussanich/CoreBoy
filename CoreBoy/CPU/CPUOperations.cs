@@ -117,6 +117,9 @@ namespace CoreBoy
             // 0x2E - LD H,n
             Operations.Add(0x2E, ops.LD_8(Register8BitNames.L));
 
+            // 0x2F - CPL
+            Operations.Add(0x2F, ops.CPL());
+
             // 0x30 - JR NC,n
             Operations.Add(0x30, ops.JR(JRFlags.NC));
 
@@ -188,6 +191,27 @@ namespace CoreBoy
 
             // 0x7F - LD A, A
             Operations.Add(0x7F, ops.LD_8(Register8BitNames.A, Register8BitNames.A));
+
+            // 0xA0 - AND B
+            Operations.Add(0xA0, ops.AND_8(Register8BitNames.B));
+
+            // 0xA1 - AND C
+            Operations.Add(0xA1, ops.AND_8(Register8BitNames.C));
+
+            // 0xA2 - AND D
+            Operations.Add(0xA2, ops.AND_8(Register8BitNames.D));
+
+            // 0xA3 - AND E
+            Operations.Add(0xA3, ops.AND_8(Register8BitNames.E));
+
+            // 0xA4 - AND H
+            Operations.Add(0xA4, ops.AND_8(Register8BitNames.H));
+
+            // 0xA5 - AND L
+            Operations.Add(0xA5, ops.AND_8(Register8BitNames.L));
+
+            // 0xA7 - AND A
+            Operations.Add(0xA7, ops.AND_8(Register8BitNames.A));
 
             // 0xA8 - XOR B
             Operations.Add(0xA8, ops.XOR_8(Register8BitNames.B));
@@ -279,6 +303,9 @@ namespace CoreBoy
             // 0xE2 - LD (0xFF00+C),A
             Operations.Add(0xE2, ops.LD_C_FF00_A());
 
+            // 0xE6 - AND n
+            Operations.Add(0xE6, ops.AND_8());
+
             // 0xEA - LD (nn),A
             Operations.Add(0xEA, ops.LD_8());
 
@@ -287,6 +314,9 @@ namespace CoreBoy
 
             // 0xF3 - DI
             Operations.Add(0xF3, ops.DI());
+
+            // 0xFB - EI
+            Operations.Add(0xFB, ops.EI());
 
             // 0xFE - CP
             Operations.Add(0xFE, ops.CP());
@@ -724,6 +754,14 @@ namespace CoreBoy
 
                 CPU.DIHelper.DisableInterruptsAfterNextInstruction = true;
             }, $"DI", 4, 1);
+            
+            public NormalOperation EI() => new NormalOperation(() =>
+            {
+                Console.WriteLine("EI");
+
+                CPU.EIHelper.EnableInterruptsAfterNextInstruction = true;
+            }, $"EI", 4, 1);
+
 
             public NormalOperation LDH_n_A() => new NormalOperation(() =>
             {
@@ -748,6 +786,54 @@ namespace CoreBoy
 
                 _cpu.Registers.SetRegisterValue(Register8BitNames.A, _cpu.Memory[newAddress]);
             }, $"LDH A,(n)", 12, 2);
+
+            public NormalOperation CPL() => new NormalOperation(() =>
+            {
+                Console.WriteLine("CPL");
+
+                byte currentA = _cpu.Registers.GetRegisterValue(Register8BitNames.A);
+
+                _cpu.Registers.NSubtractFlag = true;
+                _cpu.Registers.HHalfCarryFlag = true;
+
+                _cpu.Registers.SetRegisterValue(Register8BitNames.A, (byte)~currentA);
+            }, $"CPL", 4, 1);
+
+            public NormalOperation AND_8() => new NormalOperation(() =>
+            {
+                byte currentA = _cpu.Registers.GetRegisterValue(Register8BitNames.A);
+                ushort currentPC = _cpu.Registers.GetRegisterValue(Register16BitNames.PC);
+
+                byte operand = _cpu.Memory[currentPC + 1];
+
+                Console.WriteLine($"AND {operand.ToString("X2")}");
+
+                byte result = (byte)(currentA & operand);
+
+                _cpu.Registers.ZZeroFlag = result == 0;
+                _cpu.Registers.NSubtractFlag = false;
+                _cpu.Registers.HHalfCarryFlag = true;
+                _cpu.Registers.CCarryFlag = false;
+
+                _cpu.Registers.SetRegisterValue(Register8BitNames.A, result);
+            }, $"AND n", 8, 2);
+
+            public NormalOperation AND_8(Register8BitNames register) => new NormalOperation(() =>
+            {
+                Console.WriteLine($"AND {register.ToString()}");
+
+                byte currentA = _cpu.Registers.GetRegisterValue(Register8BitNames.A);
+                byte operand = _cpu.Registers.GetRegisterValue(register);
+
+                byte result = (byte)(currentA & operand);
+
+                _cpu.Registers.ZZeroFlag = result == 0;
+                _cpu.Registers.NSubtractFlag = false;
+                _cpu.Registers.HHalfCarryFlag = true;
+                _cpu.Registers.CCarryFlag = false;
+
+                _cpu.Registers.SetRegisterValue(Register8BitNames.A, result);
+            }, $"AND n", 4, 1);
 
             public NormalOperation CALL() => new NormalOperation(() =>
             {
